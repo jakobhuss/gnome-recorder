@@ -3,9 +3,10 @@ import signal
 import time
 from gi.repository import GLib
 from pydbus import SessionBus
+import os
 
 screencast_bus = SessionBus().get('org.gnome.Shell.Screencast', '/org/gnome/Shell/Screencast')
-file_path = "/home/jake/code/screencast/output.webm"
+file_path = os.getcwd() + "output.webm"
 frame_rate = int(30)
 show_mouse = True
 recorder_pipeline = "vp8enc min_quantizer=10 max_quantizer=50 cq_level=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! webmmux"
