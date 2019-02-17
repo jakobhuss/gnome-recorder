@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 import argparse
 import os
+import re
 import signal
 import subprocess
-import re
 
 from gi.repository import GLib
 from pydbus import SessionBus
@@ -11,22 +11,18 @@ from pydbus import SessionBus
 screencast_bus = SessionBus().get('org.gnome.Shell.Screencast', '/org/gnome/Shell/Screencast')
 
 
-def build_gstreamer_pipeline(audio=False):
-    video_pipeline = 'vp8enc min_quantizer=10 max_quantizer=50 cq_level=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! '
-    audio_on_pipeline = 'mux. pulsesrc ! queue ! audioconvert ! vorbisenc ! queue ! mux. webmmux name=mux'
-    audio_off_pipeline = 'webmmux'
-
-    return video_pipeline + (audio_on_pipeline if audio else audio_off_pipeline)
-
-
 def main(args):
     if args.list_devices:
-        list_audio_devices()
+        for i, device in enumerate(audio_devices()):
+            print('\nnumber: {}'.format(i))
+            print('name: {}'.format(device))
+            print()
         return
 
     screencast_params = {'framerate': GLib.Variant('i', int(args.frame_rate)),
                          'draw-cursor': GLib.Variant('b', not args.no_cursor),
-                         'pipeline': GLib.Variant('s', build_gstreamer_pipeline(args.audio))}
+                         'pipeline': GLib.Variant('s',
+                                                  build_gstreamer_pipeline(device=args.audio_device, audio=args.audio))}
 
     screencast_bus.Screencast(args.file_path, screencast_params)
 
@@ -40,10 +36,28 @@ def signal_handler(sig, frame):
     screencast_bus.StopScreencast()
 
 
-def list_audio_devices():
-    pacmd_sources = subprocess.run(['pacmd', 'list-sources'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-    pprint(re.findall('name: <(.*)>', pacmd_sources))
+def build_gstreamer_pipeline(device=None, audio=False):
+    video_pipeline = 'vp8enc min_quantizer=10 max_quantizer=50 cq_level=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! '
+    audio_device_pipeline = 'mux. pulsesrc device={} ! queue ! audioconvert ! vorbisenc ! queue ! mux. webmmux name=mux'
+    audio_on_pipeline = 'mux. pulsesrc ! queue ! audioconvert ! vorbisenc ! queue ! mux. webmmux name=mux'
+    audio_off_pipeline = 'webmmux'
 
+    pipeline = video_pipeline
+
+    if device:
+        if device.isdigit():
+            device = audio_devices()[int(device)]
+        return pipeline + audio_device_pipeline.format(device)
+
+    if audio:
+        return pipeline + audio_on_pipeline
+
+    return pipeline + audio_off_pipeline
+
+
+def audio_devices():
+    pacmd_sources = subprocess.run(['pacmd', 'list-sources'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+    return re.findall('name: <(.*)>', pacmd_sources)
 
 
 def parse_arguments():
@@ -60,6 +74,8 @@ def parse_arguments():
                              help='Records audio from default pulse audio input')
     args_parser.add_argument('-l', '--list_devices', default=False, dest='list_devices', action='store_true',
                              help='List possible audio devices for pulse audio')
+    args_parser.add_argument('-d', '--audio_device', dest='audio_device',
+                             help='Pulse audio device name or number for audio recording')
     args_parser.add_argument('-r', '--frame_rate', type=int, default=30, dest='frame_rate', help='Recording frame rate')
     return args_parser.parse_args()
 
