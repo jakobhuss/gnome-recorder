@@ -88,4 +88,5 @@ def parse_arguments():
     return args_parser.parse_args()
 
 
-main(parse_arguments())
+if __name__ == '__main__':
+    main(parse_arguments())
