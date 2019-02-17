@@ -12,10 +12,17 @@ screencast_bus = SessionBus().get('org.gnome.Shell.Screencast', '/org/gnome/Shel
 
 
 def main(args):
-    if args.list_devices:
-        print_devices()
+    check_print_devices(args)
+    check_overwrite_file(args)
 
     start_recording(args)
+
+
+def check_overwrite_file(args):
+    if os.path.isfile(args.file_path):
+        overwrite = input('File already exists. Overwrite? Y = yes, N = no\n')
+        if overwrite.lower() in ['n', 'no']:
+            exit()
 
 
 def start_recording(args):
@@ -31,12 +38,13 @@ def start_recording(args):
     signal.pause()
 
 
-def print_devices():
-    for i, device in enumerate(audio_devices()):
-        print()
-        print('number: {}'.format(i))
-        print('name: {}'.format(device))
-    exit()
+def check_print_devices(args):
+    if args.list_devices:
+        for i, device in enumerate(audio_devices()):
+            print()
+            print('number: {}'.format(i))
+            print('name: {}'.format(device))
+        exit()
 
 
 def signal_handler(sig, frame):
