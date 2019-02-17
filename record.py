@@ -13,22 +13,30 @@ screencast_bus = SessionBus().get('org.gnome.Shell.Screencast', '/org/gnome/Shel
 
 def main(args):
     if args.list_devices:
-        for i, device in enumerate(audio_devices()):
-            print('\nnumber: {}'.format(i))
-            print('name: {}'.format(device))
-            print()
-        return
+        print_devices()
+
+    start_recording(args)
+
+
+def start_recording(args):
+    pipeline = build_gstreamer_pipeline(device=args.audio_device, audio=args.audio)
 
     screencast_params = {'framerate': GLib.Variant('i', int(args.frame_rate)),
                          'draw-cursor': GLib.Variant('b', not args.no_cursor),
-                         'pipeline': GLib.Variant('s',
-                                                  build_gstreamer_pipeline(device=args.audio_device, audio=args.audio))}
+                         'pipeline': GLib.Variant('s', pipeline)}
 
     screencast_bus.Screencast(args.file_path, screencast_params)
-
     signal.signal(signal.SIGINT, signal_handler)
     print('Press Ctrl+C to stop video recording.')
     signal.pause()
+
+
+def print_devices():
+    for i, device in enumerate(audio_devices()):
+        print()
+        print('number: {}'.format(i))
+        print('name: {}'.format(device))
+    exit()
 
 
 def signal_handler(sig, frame):
