@@ -53,10 +53,10 @@ def signal_handler(sig, frame):
 
 
 def build_gstreamer_pipeline(device=None, audio=False):
-    video_pipeline = 'vp8enc min_quantizer=10 max_quantizer=50 cq_level=13 cpu-used=5 deadline=1000000 threads=%T ! queue ! '
-    audio_device_pipeline = 'mux. pulsesrc device={} ! queue ! audioconvert ! vorbisenc ! queue ! mux. webmmux name=mux'
-    audio_on_pipeline = 'mux. pulsesrc ! queue ! audioconvert ! vorbisenc ! queue ! mux. webmmux name=mux'
-    audio_off_pipeline = 'webmmux'
+    video_pipeline = 'x264enc pass=qual quantizer=: speed-preset=slower ! queue ! '
+    audio_device_pipeline = 'mux. pulsesrc device={} ! queue ! audioconvert ! vorbisenc ! queue ! mux. matroskamux name=mux'
+    audio_on_pipeline = 'mux. pulsesrc ! queue ! audioconvert ! vorbisenc ! queue ! mux. matroskamux name=mux'
+    audio_off_pipeline = 'matroskamux'
 
     pipeline = video_pipeline
 
